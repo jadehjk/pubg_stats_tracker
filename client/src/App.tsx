@@ -2,6 +2,7 @@ import './App.css';
 import axios from "axios";
 import { useState } from 'react';
 import SearchBar from './SearchBar';
+import MatchListItem from './MatchListItem';
 import _ from 'lodash';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
@@ -16,9 +17,9 @@ function App() {
   const [names, setNames] = useState(['']);
   const [expandMatch, setExpandMatch] = useState([false]);
 
-  interface Match {
-    id?: string;
-    teams?: Team[];
+    interface Match {
+        id?: string;
+        teams?: Team[];
     }
 
     interface Team {
@@ -37,13 +38,6 @@ function App() {
         rank?: number;
         name?: string;
         isTarget?: boolean;
-    }
-
-    const hitBackend = () => {
-        axios.get('/players')
-            .then((response) => {
-            console.log(response.data)
-        })
     }
 
     const playersURL = 'https://api.pubg.com/shards/steam/players?filter[playerNames]='
@@ -118,8 +112,6 @@ function App() {
         for (let i = 0; i < matchUrls.length; ++i) {
             matchUrls[i] = `https://api.pubg.com/shards/steam/matches/${matchUrls[i]}`
         }
-        console.log('match urls');
-        console.log(matchUrls);
         let response = await axios.get(`/matches?matchUrls=${matchUrls}`);
         parseMatches(response.data);
     }
@@ -147,11 +139,8 @@ function App() {
                 totalMatches.push(matchIds.map((x: any) => x.id));
             })
             setMatchUrls(_.intersection.apply(_, totalMatches));
-            console.log('match urls after set');
-            console.log(matchUrls)
             getMatches();
         } catch(err) {
-            console.log('fuck')
             console.log(err);
         }
     }
@@ -160,15 +149,26 @@ function App() {
         setMatchUrls([]);
         setMatches([]);
         setNames([]);
+        setExpandMatch([]);
         getPlayers(names);
     }
 
     function handleExpand(idx: number) {
+        console.log('handle expand');
+        console.log(idx);
         let tempMatches = expandMatch;
-        let match = expandMatch[idx];
+        let match = tempMatches[idx];
+        console.log('match before set');
+        console.log(match);
         match = !match;
+        console.log('match after set');
+        console.log(match);
         tempMatches[idx] = match;
+        console.log('before set');
+        console.log(expandMatch[idx]);
         setExpandMatch(tempMatches)
+        console.log('after set');
+        console.log(expandMatch[idx]);
     }
 
 
@@ -179,33 +179,8 @@ function App() {
                 {matches.map((match, idx) => (
                     <div>
                         <List key={match.id}>
-                            <div key={match.teams![0].id} className="MatchGroup">
-                                {match.teams![0].players?.map(player => (
-                                    <ListItem key={player.name}>
-                                        <ListItemText primary={player.name} secondary={`Damage: ${player.damage} Kills: ${player.kills}`} />
-                                    </ListItem>
-                                ))}
-                                <div>{`${match.teams![0].rank} / ${match.teams!.length}`}</div>
-                                <ListItem button onClick={() => handleExpand(idx)}>
-                                    { expandMatch[idx] ? <ExpandLess /> : <ExpandMore />}
-                                </ListItem>
-                            </div>
-                            <Collapse key={match.id} in={expandMatch[idx]} unmountOnExit>
-                                <List key={match.id}>
-                                    {match.teams!.map(team => (
-                                        <div key={team.id}>
-                                            <List key={team.id}>
-                                                <div>{`${team.rank} / ${match.teams!.length}`}</div>
-                                                {team.players?.map(player => (
-                                                    <ListItem key={player.name}>
-                                                        <ListItemText primary={player.name} secondary={`Damage: ${player.damage} Kills: ${player.kills}`} />
-                                                    </ListItem>
-                                                ))}
-                                            </List>
-                                        </div>
-                                    ))}
-                                </List>
-                            </Collapse>
+                            <MatchListItem match={match} />
+                            
                         </List>
                         
                     </div>
