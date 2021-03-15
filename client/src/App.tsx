@@ -111,12 +111,13 @@ function App() {
         for (let i = 0; i < matchUrls.length; ++i) {
             matchUrls[i] = `https://api.pubg.com/shards/steam/matches/${matchUrls[i]}`;
         }
-            let response = await axios.get(`/matches?matchUrls=${matchUrls}`);
-            if (response.data.status && response.data.status === 400) {
-                setErrorMsg('Could not find players with the provided name. Please make sure that the names are cased correctly.')
-                return;
-            }
-            parseMatches(response.data, parsedNames);
+        matchUrls = matchUrls.slice(0, 20);
+        let response = await axios.get(`/matches?matchUrls=${matchUrls}`);
+        if (response.data.status && response.data.status === 400) {
+            setErrorMsg('Could not find players with the provided name. Please make sure that the names are cased correctly.')
+            return;
+        }
+        parseMatches(response.data, parsedNames);
     }
 
    async function getPlayers(names: string) {
