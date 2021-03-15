@@ -1,3 +1,13 @@
 .MatchGroup {
     display: flex;
   }
+
+  .Rank {
+    font-weight: bold;
+    padding: 20px;
+  }
+
+  .DaysSince {
+    width: 700px;
+    padding: 20px;
+  }

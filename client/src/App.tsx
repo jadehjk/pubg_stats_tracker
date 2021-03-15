@@ -5,21 +5,15 @@ import SearchBar from './SearchBar';
 import MatchListItem from './MatchListItem';
 import _ from 'lodash';
 import List from '@material-ui/core/List';
-import ListItem from '@material-ui/core/ListItem';
-import ListItemText from '@material-ui/core/ListItemText';
-import ExpandLess from '@material-ui/icons/ExpandLess';
-import ExpandMore from '@material-ui/icons/ExpandMore';
-import Collapse from '@material-ui/core/Collapse';
 
 function App() {
-  const [matchUrls, setMatchUrls] = useState<any[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
-  const [names, setNames] = useState(['']);
-  const [expandMatch, setExpandMatch] = useState([false]);
+  const [errorMsg, setErrorMsg] = useState('');
 
     interface Match {
         id?: string;
         teams?: Team[];
+        date?: number;
     }
 
     interface Team {
@@ -40,20 +34,24 @@ function App() {
         isTarget?: boolean;
     }
 
-    const playersURL = 'https://api.pubg.com/shards/steam/players?filter[playerNames]='
+    function getDateDifference(today: Date, matchDate: Date) {
+        const diffTime = Math.abs(today.getTime() - matchDate.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    }
 
-    function parseMatches(commonMatches: any[]) {
+    function parseMatches(commonMatches: any[], parsedNames) {
         let tempMatches = commonMatches;
         let teams: Team[] = [];
         let matches: Match[] = [];
         let players: Record<string, Player> = {};
         if (!tempMatches || !tempMatches[0]) {
-            console.log('err')
+            setErrorMsg('Could not find players with the provided name. Please make sure that the names are cased correctly.')
             return;
         }
-        console.log('matches');
-        console.log(tempMatches)
+        let date = new Date();
         tempMatches[0].forEach((tempMatch: any) => {
+            let matchDate = new Date(tempMatch.data.attributes.createdAt);
             tempMatch.included.forEach((player: any) => {
                 if (player.type === 'roster') {
                     teams.push({
@@ -66,12 +64,12 @@ function App() {
                 if (player.type === 'participant') {
                     players[player.id] = {
                         assists: player.attributes.stats.assists,
-                        damage: Number(player.attributes.stats.damageDealt),
+                        damage: parseInt(player.attributes.stats.damageDealt),
                         kills: player.attributes.stats.kills,
                         timeSurvived: player.attributes.stats.timeSurvived / 60,
                         rank: player.attributes.stats.winPlace,
                         name: player.attributes.stats.name,
-                        isTarget: names.includes(player.attributes.stats.name)
+                        isTarget: parsedNames.includes(player.attributes.stats.name)
                     }
                 }
             })
@@ -84,36 +82,41 @@ function App() {
                 })
             })
             teams.sort((x, y) => x.rank! - y.rank!);
-
-            for (let i = 0; i < teams.length; ++i) {
+            let targetTeams = [];
+            let nonTargetTeams = [];
+            let teamsLength = teams.length;
+            for (let i = 0; i < teamsLength; ++i) {
                 if (teams[i].isTarget) {
-                    let temp = JSON.parse(JSON.stringify(teams[i]));
-                    teams.splice(i, 1);
-                    teams.unshift(temp);
+                    targetTeams.push(teams[i]);
+                } else {
+                    nonTargetTeams.push(teams[i]);
                 }
             }
             matches.push({
                 id: tempMatch.data.id,
-                teams
+                teams: targetTeams.concat(nonTargetTeams),
+                date: getDateDifference(date, matchDate)
             })
             teams = [];
             players = {};
         })
-        console.log('-----------------------------------------------------');
-        console.log(matches);
-        setMatches(matches);
-        setExpandMatch(Array<boolean>(matches.length).fill(false));
+        setMatches([...matches]);
     }
 
-    async function getMatches() {
+    async function getMatches(matchUrls, parsedNames) {
         if (matchUrls.length < 1) {
+            setErrorMsg('Could not find players with the provided name. Please make sure that the names are cased correctly.')
             return;
         }
         for (let i = 0; i < matchUrls.length; ++i) {
-            matchUrls[i] = `https://api.pubg.com/shards/steam/matches/${matchUrls[i]}`
+            matchUrls[i] = `https://api.pubg.com/shards/steam/matches/${matchUrls[i]}`;
         }
-        let response = await axios.get(`/matches?matchUrls=${matchUrls}`);
-        parseMatches(response.data);
+            let response = await axios.get(`/matches?matchUrls=${matchUrls}`);
+            if (response.data.status && response.data.status === 400) {
+                setErrorMsg('Could not find players with the provided name. Please make sure that the names are cased correctly.')
+                return;
+            }
+            parseMatches(response.data, parsedNames);
     }
 
    async function getPlayers(names: string) {
@@ -121,66 +124,40 @@ function App() {
         if (playerNames[playerNames.length - 1] === ',') {
             playerNames.slice(0, -1);
         }
-        setNames(playerNames.split(','))
-        let url = `${playersURL}${playerNames}`;
-        console.log('player url');
-        console.log(url);
-        try {
-            // let response: any = axios.get(url, {headers: new Headers(headers)});
-            let response: any = await axios.get(`/players?names=${playerNames}`);
-            // let response: any = await fetch('/api/hello');
-            let totalMatches: string[] = [];
-            console.log(response);
-            response.data.data.forEach((players: any) => {
-                let matchIds: any = [];
-                players.relationships.matches.data.forEach((match: Record<string, string>) => {
-                    matchIds.push(match);
-                })
-                totalMatches.push(matchIds.map((x: any) => x.id));
-            })
-            setMatchUrls(_.intersection.apply(_, totalMatches));
-            getMatches();
-        } catch(err) {
-            console.log(err);
+        let parsedNames = playerNames.split(',');
+        let response: any = await axios.get(`/players?names=${playerNames}`);
+        console.log(response);
+        if (response.data.status && response.data.status === 400) {
+            setErrorMsg('Could not find players with the provided name. Please make sure that the names are cased correctly.')
+            return;
         }
+        let totalMatches: string[] = [];
+        response.data.data.forEach((players: any) => {
+            let matchIds: any = [];
+            players.relationships.matches.data.forEach((match: Record<string, string>) => {
+                matchIds.push(match);
+            })
+            totalMatches.push(matchIds.map((x: any) => x.id));
+        })
+        getMatches([..._.intersection.apply(_, totalMatches)], parsedNames);
     }
 
     function handlePlayersSearch(names: string) {
-        setMatchUrls([]);
         setMatches([]);
-        setNames([]);
-        setExpandMatch([]);
         getPlayers(names);
     }
-
-    function handleExpand(idx: number) {
-        console.log('handle expand');
-        console.log(idx);
-        let tempMatches = expandMatch;
-        let match = tempMatches[idx];
-        console.log('match before set');
-        console.log(match);
-        match = !match;
-        console.log('match after set');
-        console.log(match);
-        tempMatches[idx] = match;
-        console.log('before set');
-        console.log(expandMatch[idx]);
-        setExpandMatch(tempMatches)
-        console.log('after set');
-        console.log(expandMatch[idx]);
-    }
-
 
     return (
         <div className="App">
             <SearchBar onPlayersSearch={handlePlayersSearch}/>
             <div>
-                {matches.map((match, idx) => (
+                {errorMsg.length > 0 &&
+                    <div>{errorMsg}</div>
+                }
+                {matches.map((match) => (
                     <div>
                         <List key={match.id}>
                             <MatchListItem match={match} />
-                            
                         </List>
                         
                     </div>

@@ -11,7 +11,6 @@ function SearchBar(props) {
     const [names, setNames] = useState('');
 
     function handleSearch() {
-        console.log(names)
         props.onPlayersSearch(names);
     }
 

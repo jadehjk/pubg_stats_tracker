@@ -5,6 +5,7 @@ const cors = require('cors');
 const axios = require('axios');
 require('dotenv').config()
 app.use(cors());
+app.use(express.static(path.join(__dirname, 'build')));
 
 app.get('/players',(req, res) => {
     let names = req.query.names;
@@ -17,8 +18,10 @@ app.get('/players',(req, res) => {
       .then(response => {
         res.send(response.data);
       })
-      .catch(error => {
-        console.log(error);
+      .catch(() => {
+        res.send({
+            status: 400
+        })
       })
 });
 
@@ -36,6 +39,11 @@ app.get('/matches', (req,res) => {
                     commonMatches.push(match)
                     res.send(commonMatches);
                 })
+        })
+        .catch(() => {
+            res.send({
+                status: 400
+            })
         })
 })
 
