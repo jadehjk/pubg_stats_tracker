@@ -1,13 +1,41 @@
 .MatchGroup {
-    display: flex;
-  }
+  display: flex;
+  margin-left: 20px !important;
+}
 
   .Rank {
     font-weight: bold;
-    padding: 20px;
+    padding: 25px;
   }
 
   .DaysSince {
-    width: 700px;
-    padding: 20px;
+    padding: 25px;
+  }
+
+  .PlayerBox {
+    margin: 20px;
+  }
+
+  .PlayerName {
+    margin-right: 20px;
+    font-weight: bold;
+  }
+
+  .PlayersGroup {
+    margin-right: 20px;
+  }
+  
+  .RankAndDays {
+    width: 100% !important;
+    margin: auto !important;
+  }
+
+  .OtherPlayersGrey {
+    display: flex;
+    background-color: 	#E8E8E8
+  }
+
+  .OtherPlayersLightGrey {
+    display: flex;
+    background-color: #F0F0F0
   }

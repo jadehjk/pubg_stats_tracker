@@ -1,5 +1,6 @@
 .App {
   text-align: center;
+  padding: 50px;
 }
 
 .App-header {
@@ -13,6 +14,11 @@
 .MatchGroup {
   display: flex;
 }
+.container {
+  margin: auto;
+  width: 50%
+}
+
 
 @keyframes App-logo-spin {
   from {

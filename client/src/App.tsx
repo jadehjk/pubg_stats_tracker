@@ -5,6 +5,7 @@ import SearchBar from './SearchBar';
 import MatchListItem from './MatchListItem';
 import _ from 'lodash';
 import List from '@material-ui/core/List';
+import ListItem from '@material-ui/core/ListItem';
 
 function App() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -13,7 +14,7 @@ function App() {
     interface Match {
         id?: string;
         teams?: Team[];
-        date?: number;
+        date?: string;
     }
 
     interface Team {
@@ -34,10 +35,15 @@ function App() {
         isTarget?: boolean;
     }
 
-    function getDateDifference(today: Date, matchDate: Date) {
+    function getDateDifference(today: Date, matchDate: Date): string {
+        console.log('diff time');
         const diffTime = Math.abs(today.getTime() - matchDate.getTime());
+        const diffHours = Math.ceil(Math.abs((diffTime / (1000 * 60 * 60))));
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays;
+        if (diffHours < 24) {
+            return `${diffHours} hours ago`;
+        }
+        return `${diffDays} days ago`;
     }
 
     function parseMatches(commonMatches: any[], parsedNames) {
@@ -127,7 +133,6 @@ function App() {
         }
         let parsedNames = playerNames.split(',');
         let response: any = await axios.get(`/players?names=${playerNames}`);
-        console.log(response);
         if (response.data.status && response.data.status === 400) {
             setErrorMsg('Could not find players with the provided name. Please make sure that the names are cased correctly.')
             return;
@@ -151,19 +156,19 @@ function App() {
     return (
         <div className="App">
             <SearchBar onPlayersSearch={handlePlayersSearch}/>
-            <div>
+            <div className="container">
                 {errorMsg.length > 0 &&
                     <div>{errorMsg}</div>
                 }
-                {matches.map((match) => (
-                    <div>
-                        <List key={match.id}>
-                            <MatchListItem match={match} />
-                        </List>
-                        
-                    </div>
-                    
-                ))}
+                <List>
+                    {matches.map((match) => (
+                        <div>
+                            <ListItem key={match.id}>
+                                <MatchListItem match={match} />
+                            </ListItem>
+                        </div>
+                    ))}
+                </List>
             </div>
         </div>
         );
